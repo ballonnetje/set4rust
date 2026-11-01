@@ -1,0 +1,24 @@
+[workspace]
+resolver = "3"
+# vendor/: patched third-party sources (see [patch.crates-io]), not workspace members.
+# studio/: the Asset Studio, an app of its own with its own workspace and Cargo.lock.
+exclude = ["vendor", "studio"]
+members = ["crates/s4-formats", "crates/s4-sim", "crates/s4-viewer", "crates/s4-script", "crates/s4-audio", "crates/s4-game", "crates/s4-net", "crates/s4-mapgen", "crates/s4-relay", "crates/s4-portable", "crates/s4-video"]  # add new crates here once their Cargo.toml exists
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+
+[workspace.dependencies]
+thiserror = "2"
+anyhow = "1"
+
+[profile.dev.package."*"]
+opt-level = 3
+
+# Lua 5.2.4 with a fixed string-hash seed (vendor/lua-src/lua-5.2.4/lstate.c `makeseed`): the
+# stock seed mixes time and ASLR addresses, so pairs() over string keys could visit them in a
+# different order on each client. Test: s4-script tests/lua_determinism.rs. The lua-src build
+# script does not track the C files: after editing them, `cargo clean -p mlua-sys -p lua-src`.
+[patch.crates-io]
+lua-src = { path = "vendor/lua-src" }

@@ -1,0 +1,19 @@
+target/
+target-*/
+/out/
+/pack/
+
+# The game's own files never go into this repository.
+/thesettlers4/
+/assets/
+*.gfx
+*.gil
+*.pil
+*.jil
+*.dil
+*.snd
+*.sil
+*.sav
+*.bik
+S4_Main.exe
+S4_MainR.pdb

@@ -1,0 +1,13 @@
+[package]
+name = "s4-video"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+tracing = "0.1.44"
+# The AV1 decoder (rav1d: the Rust port of dav1d, BSD-2-Clause). Without its asm: the x86 asm
+# needs nasm at build time, and a 640×480 frame decodes in a few ms without it.
+rav1d = { version = "1.1.0", default-features = false, features = ["bitdepth_8"] }
+libc = "0.2"

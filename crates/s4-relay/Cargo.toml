@@ -1,0 +1,10 @@
+[package]
+name = "s4-relay"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Internet relay for s4rs network games: room list and forwarding [ours]"
+
+# std only (plus anyhow): it builds for the server (x86_64-unknown-linux-musl) without the game.
+[dependencies]
+anyhow.workspace = true

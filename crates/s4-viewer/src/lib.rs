@@ -1,0 +1,43 @@
+//! s4-viewer as a library: terrain, sprites, GUI and effects rendering on wgpu, used by the
+//! `s4-viewer` binary (map viewer, captures, diffs) and by `s4-game` (the client).
+
+pub mod animate;
+pub mod audit;
+pub mod build_goto;
+pub mod building_dialog;
+pub mod eyecatcher_sidebar;
+pub mod client;
+pub mod clouds;
+pub mod clock;
+pub mod effects;
+pub mod flyer_gfx;
+pub mod fog;
+pub mod goods_race;
+pub mod gpu;
+pub mod group_sidebar;
+pub mod gui;
+pub mod gui_pages;
+pub mod guistate;
+pub mod mini_view;
+pub mod minimap;
+pub mod msg_window;
+pub mod perf;
+pub mod picking;
+pub mod population;
+pub mod refstats;
+pub mod scene;
+pub mod selection;
+pub mod settings_pages;
+pub mod sprites;
+pub mod stat_graphs;
+pub mod terrain;
+pub mod terrain_gpu;
+pub mod terrain_mips;
+pub mod trade_sidebar;
+pub mod spell_sidebar;
+pub mod vehicle_dialog;
+pub mod vehicle_gfx;
+pub mod vehicle_group;
+pub mod video;
+pub mod waves;
+pub mod workshop_sidebar;

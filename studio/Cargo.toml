@@ -1,0 +1,37 @@
+# The S4RS Asset Studio: a native desktop app of its own (own workspace, own Cargo.lock, own exe).
+# It shares only the file readers (`s4-formats`) with the game. Build from this folder:
+#   cargo build --release
+[package]
+name = "s4-asset-studio"
+version = "0.2.0"
+edition = "2024"
+license = "MIT"
+description = "Browse The Settlers IV's assets and replace them with your own"
+
+[[bin]]
+name = "s4-asset-studio"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+eframe = { version = "0.37", default-features = false, features = ["default_fonts", "wgpu", "wayland", "x11"] }
+egui = "0.37"
+# Non-PNG images dropped in as frames (PNG itself goes through `png`).
+image = { version = "0.25", default-features = false, features = ["bmp", "gif", "jpeg", "tga", "tiff", "webp"] }
+png = "0.17"
+pollster = "0.4"
+# Native dialogs; xdg-portal: no GTK development package on Linux.
+rfd = { version = "0.17", default-features = false, features = ["xdg-portal"] }
+rodio = { version = "0.23", default-features = false, features = ["playback", "mp3", "mp4", "wav", "vorbis", "flac", "symphonia-aiff"] }
+s4-formats = { path = "../crates/s4-formats" }
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+egui_kittest = { version = "0.37", features = ["eframe", "wgpu"] }
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[workspace]

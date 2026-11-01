@@ -1,0 +1,143 @@
+# Builds the game and the Asset Studio for Windows, Linux and macOS when a version tag is pushed,
+# and publishes them as a GitHub Release of that tag.
+name: Build
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  no-game-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: The repository holds none of the game's files
+        run: |
+          if git ls-files | grep -iE '\.(gfx|gil|pil|jil|dil|sil|snd|sav|bik)$|S4_Main|thesettlers4/'; then exit 1; fi
+
+  windows:
+    needs: no-game-data
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust
+        run: rustup toolchain install stable --profile minimal; rustup default stable
+      - name: Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Tests that run without the game
+        run: cargo test --release --locked -p s4-formats -p s4-script -p s4-mapgen
+      - name: Packages
+        run: powershell -ExecutionPolicy Bypass -File tools\package\windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            target/package/*.zip
+            target/package/*.exe
+
+  linux:
+    needs: no-game-data
+    runs-on: ubuntu-latest
+    # glibc 2.36: the packages run on Debian 12, Ubuntu 22.10, Fedora 37 and later.
+    container: debian:bookworm
+    steps:
+      - name: Tools
+        run: |
+          apt-get update
+          apt-get install -y build-essential pkg-config libasound2-dev curl git ca-certificates
+      - uses: actions/checkout@v4
+      - name: Rust
+        run: |
+          curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Tests that run without the game
+        run: cargo test --release --locked -p s4-formats -p s4-script -p s4-mapgen
+      - name: Packages
+        run: bash tools/package/unix.sh
+      - name: The studio starts
+        run: |
+          mkdir smoke
+          tar -C smoke -xzf target/package/S4RS-Asset-Studio-Linux-x64-*.tar.gz
+          smoke/S4RS-Asset-Studio/s4-asset-studio --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: target/package/*.tar.gz
+
+  macos:
+    needs: no-game-data
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - name: Tests that run without the game
+        run: cargo test --release --locked -p s4-formats -p s4-script -p s4-mapgen
+      - name: Packages
+        run: bash tools/package/unix.sh
+      - name: The programs start
+        run: |
+          mkdir smoke
+          tar -C smoke -xzf target/package/S4RS-Asset-Studio-macOS-universal-*.tar.gz
+          tar -C smoke -xzf target/package/S4RS-macOS-universal-*.tar.gz
+          smoke/S4RS-Asset-Studio/s4-asset-studio --version
+          lipo -archs smoke/S4RS/s4-game
+          lipo -archs smoke/S4RS-Asset-Studio/s4-asset-studio
+          out="$(S4RS_NO_DETECT=1 S4RS_NO_AUDIO=1 smoke/S4RS/s4-game --headless --ticks 1 2>&1 || true)"
+          echo "$out"
+          if echo "$out" | grep -q 'dyld'; then exit 1; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: target/package/*.tar.gz
+
+  release:
+    needs: [windows, linux, macos]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: The GitHub Release with every package and their checksums
+        run: |
+          (cd dist && sha256sum -- * > SHA256SUMS)
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --title "S4RS ${TAG#v}" --notes-file .github/release-notes.md --verify-tag
+          fi
+
+  # Job logs need a token to read, so a failed run leaves its logs on the branch ci-logs.
+  failure-logs:
+    needs: [windows, linux, macos, release]
+    if: failure()
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      RUN: ${{ github.run_id }}
+    steps:
+      - name: Publish the logs of the failed jobs
+        run: |
+          mkdir logs && cd logs
+          git init -q -b ci-logs
+          gh api "repos/$REPO/actions/runs/$RUN/jobs?per_page=50" --jq '.jobs[] | select(.conclusion == "failure") | "\(.id) \(.name)"' |
+          while read -r id name; do
+            gh api "repos/$REPO/actions/jobs/$id/logs" > "$name.log" || true
+          done
+          git add .
+          git -c user.name=ci -c user.email=ci@localhost commit -qm "logs of run $RUN"
+          git push -f "https://x-access-token:$GH_TOKEN@github.com/$REPO.git" ci-logs

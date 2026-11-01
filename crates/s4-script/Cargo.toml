@@ -1,0 +1,15 @@
+[package]
+name = "s4-script"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# Lua 5.2: the original embeds Lua 3.2.1, which no maintained crate provides.
+mlua = { version = "0.10", features = ["lua52", "vendored"] }
+# The script text keys come from the player's exe.
+s4-formats = { path = "../s4-formats" }
+thiserror.workspace = true
+
+[dev-dependencies]
+anyhow.workspace = true

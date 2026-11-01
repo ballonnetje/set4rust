@@ -1,0 +1,12 @@
+[package]
+name = "s4-portable"
+version = "0.2.0"
+edition.workspace = true
+license.workspace = true
+description = "The portable build's launcher (shipped as S4RS.exe): imports the game data from the player's own install, then starts s4-game.exe"
+
+[dependencies]
+s4-formats = { path = "../s4-formats" }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.52", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_LibraryLoader", "Win32_UI_Controls", "Win32_UI_WindowsAndMessaging"] }
