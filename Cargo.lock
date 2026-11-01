@@ -2119,7 +2119,7 @@ dependencies = [
 
 [[package]]
 name = "s4-game"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -2166,7 +2166,7 @@ dependencies = [
 
 [[package]]
 name = "s4-portable"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "s4-formats",
  "windows-sys 0.52.0",

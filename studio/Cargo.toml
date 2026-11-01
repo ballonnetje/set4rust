@@ -3,7 +3,7 @@
 #   cargo build --release
 [package]
 name = "s4-asset-studio"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2024"
 license = "MIT"
 description = "Browse The Settlers IV's assets and replace them with your own"

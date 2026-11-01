@@ -64,9 +64,10 @@ static LISTINGS: Mutex<Option<HashMap<PathBuf, Listing>>> = Mutex::new(None);
 /// The entry of `dir` named `name`: the exact name, else the first equal ignoring case.
 fn entry(dir: &Path, name: &std::ffi::OsStr) -> Option<OsString> {
     // Where case counts, an existing exact name is the entry, whatever a listing cached before it
-    // was created holds (on Windows any case would exist: the listing gives the name on disk).
+    // was created holds (on Windows and on macOS' usual file system any case would exist: the
+    // listing gives the name on disk).
     let listed = if dir.as_os_str().is_empty() { Path::new(".") } else { dir };
-    if !cfg!(windows) && std::fs::symlink_metadata(listed.join(name)).is_ok() {
+    if !cfg!(any(windows, target_os = "macos")) && std::fs::symlink_metadata(listed.join(name)).is_ok() {
         return Some(name.to_os_string());
     }
     let key = name.to_string_lossy().to_lowercase();
@@ -123,11 +124,12 @@ mod tests {
             assert_eq!(rel(&match_case(&root.join("menu").join("GUISetRomans.dat"))), "menu/GUISetRomans.dat");
             assert_eq!(std::fs::read(match_case(&root.join("MENU").join("guisetromans.dat"))).unwrap(), b"z");
         }
-        // resolve: unchanged on Windows; elsewhere the same walk.
+        // resolve: unchanged on Windows; on a case-sensitive file system the same walk; where case
+        // does not count (macOS' usual file system) the path already exists as given.
         let r = resolve(root.join(r"Script\roman01.txt"));
         if cfg!(windows) {
             assert_eq!(r, root.join(r"Script\roman01.txt"));
-        } else {
+        } else if !cfg!(target_os = "macos") {
             assert_eq!(rel(&r), "script/roman01.txt");
         }
         assert_eq!(std::fs::read(r).unwrap(), b"x");
