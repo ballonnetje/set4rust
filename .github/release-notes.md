@@ -12,6 +12,11 @@ S4RS is a rewrite of The Settlers IV (History Edition) in Rust, for Windows, Lin
 
 `SHA256SUMS` lists the checksums.
 
+## In this release
+
+- The game for Windows, Linux and macOS, and the Asset Studio as a native desktop app for all three.
+- Optional cloud shadows drifting with the wind: press F5 in a game. They are off by default and change nothing in the simulation.
+
 ## Good to know
 
 - The programs are not signed. Windows SmartScreen may warn; on macOS run `xattr -dr com.apple.quarantine .` in the unpacked folder first.
