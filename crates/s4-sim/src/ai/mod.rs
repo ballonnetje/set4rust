@@ -407,6 +407,29 @@ pub fn player_out(world: &mut World, player: u8) {
     }
 }
 
+/// A player was declared lost: the sim's part of the client's event 0x38 (`EventManagement`
+/// 0x5172f0 case 0x38, 0x517631..0x5176b9), which every peer runs once per player (the senders
+/// test and set the lost flag 0x149b7f4 first):
+/// * the record byte 0x149b608 is cleared and a computer player's AI removed ([`player_out`]);
+/// * 0x4f8f80 copies the statistics once for the end screens (client, not ported here);
+/// * every building of the player on the lists of the types 1..=0x52 but the towers and the
+///   castle (0x2e, 0x2f, 0x30), head first, that works (flag 0x1000) is switched off (role
+///   vtbl+0x20, [`crate::buildings::switch`]): sites stop, workers are set free, nothing more is
+///   produced.
+pub fn player_lost(world: &mut World, player: u8) {
+    if !(1..=8).contains(&player) {
+        return;
+    }
+    player_out(world, player);
+    for kind in (1..0x53u16).filter(|k| !matches!(k, 0x2e..=0x30)) {
+        for id in crate::buildings::list(world, player, kind).to_vec() {
+            if world.entities.by_index(id as u32).is_some_and(|e| e.flags & 0x1000 != 0) {
+                crate::buildings::switch(world, id);
+            }
+        }
+    }
+}
+
 /// `CAIMain` vtbl+0x20 (0x438580) `RemovePlayer(p)`.
 pub fn remove_player(world: &mut World, player: u8) {
     if !world.ai.active || !(1..=8).contains(&player) {

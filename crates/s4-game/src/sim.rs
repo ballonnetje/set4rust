@@ -1624,3 +1624,52 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
+
+#[cfg(test)]
+mod dark_land_tests {
+    use s4_sim::entity::ObjType;
+
+    /// The priest's terrain spell on a mushroom farm, end to end as the release runs it: cast
+    /// (0x4f5570) → spell 3 (0x4f39d0: dark land → kind 4, 5 rings) → future event 4 per ring
+    /// (0x4e5320) → 0x4e5100 → `CDarkTribe` vtbl+0x10 (0x4cbc80, player 1) → 0x4cbb60: the node
+    /// turns light, the farm whose footprint ring closes is destroyed (0x53ce10), and the
+    /// landscape is redrawn (0x65b210 → `SetDarkLandFlag` 0x66d500): the scene's terrain shows
+    /// the light land. dark04's first farm.
+    #[test]
+    fn the_terrain_spell_turns_dark_land_green_and_destroys_the_farm() {
+        if !s4_formats::game_dir().join("Map").exists() {
+            return;
+        }
+        let map = s4_formats::map::MapFile::open(s4_viewer::scene::resolve_map("Campaign/dark04")).unwrap();
+        let mut w = s4_viewer::population::world_from_map(&map).unwrap();
+        let caster = (1..=8u8).find(|&p| w.player(p).is_some_and(|q| q.race != 3)).expect("a player with priests");
+        let (farm, fx, fy) = w
+            .entities
+            .iter()
+            .find(|(_, e)| e.obj_type == ObjType::Building && e.kind == 49 && e.race == 3 && !e.is_dead())
+            .map(|(i, e)| (i, e.x(), e.y()))
+            .expect("dark04 has a mushroom farm");
+        let mut gpu = s4_viewer::gpu::Gpu::headless(64, 64).unwrap();
+        let mut scene = s4_viewer::scene::Scene::load(Some("Campaign/dark04"), false, false).unwrap();
+        scene.upload(&mut gpu);
+        scene.set_population(&mut gpu, s4_viewer::population::from_world(&w)).unwrap();
+        let size = w.grid.size() as usize;
+        let around: Vec<usize> = s4_sim::spiral::walk(w.grid, fx, fy, 6).map(|(x, y)| y as usize * size + x as usize).collect();
+        let drawn_dark = |scene: &s4_viewer::scene::Scene| around.iter().filter(|&&i| scene.source.nodes[i].dark()).count();
+        assert!(drawn_dark(&scene) > 0, "the farm stands on land drawn dark");
+
+        let flags = s4_sim::magic::cast_flag::FREE | s4_sim::magic::cast_flag::NO_RANGE;
+        assert_eq!(s4_sim::magic::cast_spell(&mut w, caster, 3, fx, fy, flags, 0), 1, "cast");
+        for _ in 0..10 {
+            s4_sim::tick(&mut w, &[]);
+        }
+        assert!(w.entities.by_index(farm as u32).is_none_or(|e| e.is_dead() || e.kind != 49), "the farm is destroyed");
+        assert_eq!(around.iter().filter(|&&i| w.layers.flags[i] & 4 != 0).count(), 0, "the sim's land around it is light");
+
+        scene.set_population(&mut gpu, s4_viewer::population::from_world(&w)).unwrap();
+        assert_eq!(drawn_dark(&scene), 0, "the land around it is drawn green");
+        for (i, n) in scene.source.nodes.iter().enumerate() {
+            assert_eq!(n.dark(), w.layers.flags[i] & 4 != 0, "node {} drawn as the sim has it", i);
+        }
+    }
+}

@@ -9,8 +9,10 @@
 //! Callers: the shadow herb (`CShadowHerb`, deco 216) darkens around itself
 //! ([`darken_around`], vtbl+0xc). The gardener lightens ([`lighten`], vtbl+0x10).
 //!
-//! Not ported: the minimap / landscape redraw (0x65b210, client), and what lightening does to a
-//! building standing there (0x53ce10, only with a player).
+//! The landscape redraw (0x65b210 → `SetDarkLandFlag` 0x66d500) is the client's: the viewer
+//! mirrors flag 0x04 into the drawn terrain (`s4_viewer::terrain::Grid::set_dark`). Lightening
+//! the free ring of a Dark Tribe building's footprint closed destroys the building (0x4cbc15 →
+//! 0x53ce10, only with a player; [`set_dark`]).
 //!
 //! The rest of `CDarkTribe` ties the mushroom farms to the dark temple (decompiles
 //! `dark/darkland.c`, `dark/mushfarm2.c`, `dark/misc.c`):

@@ -78,10 +78,15 @@ impl GameHost {
     /// Marks `p` lost; the first time, event 0x38 for the client's messages (every lost path of
     /// the original tests and sets the flag 0x149b7f4 + 0x8c · p before sending it). None of
     /// them decides the game (only 0x5c8260 sends 0x37); the client ends it for the local
-    /// player at its own 0x38 (0x5172f0 case 0x38 → 0x52a1a0).
+    /// player at its own 0x38 (0x5172f0 case 0x38 → 0x52a1a0). Every peer's 0x38 also takes the
+    /// player out of the game ([`s4_sim::ai::player_lost`]).
     fn set_lost(&mut self, p: i32) {
         if self.lost & (1 << p) == 0 {
             self.lost |= 1 << p;
+            // The sim's part of event 0x38: the player is out, its AI and economy stop.
+            if let Some(w) = self.world_mut() {
+                s4_sim::ai::player_lost(w, p as u8);
+            }
             self.tut().requests.push(Request::PlayerLost(p as u8));
             if p == self.local_player && self.outcome.load(Ordering::Relaxed) == 0 {
                 tracing::info!("game decided for player {p}: lost");

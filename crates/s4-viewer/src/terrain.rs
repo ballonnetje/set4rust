@@ -51,6 +51,10 @@ pub trait TerrainSource: Sync {
 }
 
 pub const BAND_ROWS: usize = 16;
+
+/// The six neighbours 0x66d570 counts: (x − 1, y − 1), (x, y − 1), (x + 1, y), (x + 1, y + 1),
+/// (x, y + 1), (x − 1, y).
+const NEIGHBOURS: [(i32, i32); 6] = [(-1, -1), (0, -1), (1, 0), (1, 1), (0, 1), (-1, 0)];
 /// Row height and triangle width in zoom-1 pixels (camera mode 1: H = W/2).
 pub const TRI_W: i32 = 24;
 pub const ROW_H: i32 = 12;
@@ -353,6 +357,40 @@ impl Grid {
         n.gradient = (n.gradient & 0xF0) | shade_index(up, down);
     }
 
+    /// `SetDarkLandFlag` (release 0x66d500, from `CDarkTribe`'s 0x4cbb60 through 0x65b210): byte 2
+    /// bit 0x40 follows the sim's dark land on ground types ≥ 8 (water is never drawn dark), then
+    /// the dark-crossing bit of the node and its six neighbours is redone (0x66d570, which calls
+    /// itself once for the neighbours). [inf] The byte-3 refresh bit 0x40 it also sets is not kept.
+    pub fn set_dark(&mut self, x: usize, y: usize, dark: bool) {
+        let n = &mut self.nodes[y * self.w + x];
+        if dark && n.ground >= 8 {
+            n.gradient |= 0x40;
+        } else {
+            n.gradient &= !0x40;
+        }
+        self.refresh_crossing(x as i32, y as i32);
+        for (dx, dy) in NEIGHBOURS {
+            self.refresh_crossing(x as i32 + dx, y as i32 + dy);
+        }
+    }
+
+    /// 0x66d570's test for one node: bit 0x80 ("dark-land crossing", shading index 0) on a light
+    /// node with a dark neighbour, off otherwise.
+    fn refresh_crossing(&mut self, x: i32, y: i32) {
+        let (w, h) = (self.w as i32, self.h as i32);
+        if !(0..w).contains(&x) || !(0..h).contains(&y) {
+            return;
+        }
+        let dark = |x: i32, y: i32| (0..w).contains(&x) && (0..h).contains(&y) && self.nodes[(y * w + x) as usize].dark();
+        let cross = !dark(x, y) && NEIGHBOURS.iter().any(|&(dx, dy)| dark(x + dx, y + dy));
+        let n = &mut self.nodes[(y * w + x) as usize];
+        if cross {
+            n.gradient |= 0x80;
+        } else {
+            n.gradient &= !0x80;
+        }
+    }
+
     /// Change one node's height the way the game does (`IGfxEngine::UpdateWorldPosition` →
     /// `RefreshShading(i, false)`: the node and its vertical neighbours are re-shaded).
     pub fn set_height(&mut self, x: usize, y: usize, height: u8) {
@@ -440,6 +478,28 @@ impl TerrainSource for Grid {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 0x66d500 / 0x66d570: a node turned dark is drawn dark (not on water), its light
+    /// neighbours get the crossing bit, and turning it light again clears them.
+    #[test]
+    fn dark_land_and_its_crossing() {
+        let node = TerrainNode { height: 0, ground: 16, gradient: 0, gfx_bits: 0 };
+        let mut g = Grid { w: 8, h: 8, nodes: vec![node; 64] };
+        g.nodes[8 * 2 + 2].ground = 4;
+        g.set_dark(4, 4, true);
+        assert!(g.node(4, 4).dark() && g.node(4, 4).gradient & 0x80 == 0);
+        for (dx, dy) in NEIGHBOURS {
+            let n = g.node((4 + dx) as usize, (4 + dy) as usize);
+            assert_eq!(n.gradient & 0xC0, 0x80, "light neighbour ({dx}, {dy}) crosses");
+        }
+        // (5, 3) and (3, 5) are not 0x66d570's neighbours.
+        assert_eq!(g.node(5, 3).gradient & 0x80, 0);
+        assert_eq!(g.node(3, 5).gradient & 0x80, 0);
+        g.set_dark(2, 2, true);
+        assert!(!g.node(2, 2).dark(), "water is never drawn dark");
+        g.set_dark(4, 4, false);
+        assert!(g.nodes.iter().all(|n| n.gradient & 0xC0 == 0));
+    }
 
     #[test]
     fn mesh_counts() {

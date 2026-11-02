@@ -243,12 +243,18 @@ impl Scene {
         let t = crate::perf::span("pop: terrain");
         let mut rows = Vec::new();
         let mut touched = Vec::new();
+        // Nodes whose dark land (sim flag 0x04) differs from what is drawn (byte 2 bit 0x40):
+        // `CDarkTribe` 0x4cbb60 → 0x65b210 → `SetDarkLandFlag` 0x66d500 in the release.
+        let mut dark = Vec::new();
         if pop.size == w {
+            let flags = pop.flags.len() == pop.height.len();
             // Rows equal in the last population are equal in the grid.
-            let last = self.population.as_ref().filter(|p| self.terrain_synced && p.height.len() == pop.height.len() && p.ground.len() == pop.ground.len());
+            let last = self.population.as_ref().filter(|p| {
+                self.terrain_synced && p.height.len() == pop.height.len() && p.ground.len() == pop.ground.len() && p.flags.len() == pop.flags.len()
+            });
             for (y, row) in self.source.nodes.chunks_mut(w).enumerate() {
                 let r = y * w..(y + 1) * w;
-                if last.is_some_and(|p| p.height[r.clone()] == pop.height[r.clone()] && p.ground[r.clone()] == pop.ground[r.clone()]) {
+                if last.is_some_and(|p| p.height[r.clone()] == pop.height[r.clone()] && p.ground[r.clone()] == pop.ground[r.clone()] && (!flags || p.flags[r.clone()] == pop.flags[r.clone()])) {
                     continue;
                 }
                 for (i, n) in r.zip(row) {
@@ -260,8 +266,21 @@ impl Scene {
                             rows.push(y);
                         }
                     }
+                    if flags && (pop.flags[i] & 4 != 0) != n.dark() {
+                        dark.push((i, pop.flags[i] & 4 != 0));
+                    }
                 }
             }
+        }
+        for &(i, d) in &dark {
+            let (x, y) = (i % w, i / w);
+            self.source.set_dark(x, y, d);
+            // The crossing bits of the rows above and below change too.
+            rows.extend([y.saturating_sub(1), y, (y + 1).min(self.source.h - 1)]);
+        }
+        if !dark.is_empty() {
+            rows.sort_unstable();
+            rows.dedup();
         }
         // With the final heights: a node re-shaded by an earlier change in the same snapshot is
         // re-shaded again by the later one, as the original's sequence of calls ends up.
