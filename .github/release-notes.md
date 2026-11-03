@@ -14,8 +14,9 @@ S4RS is a rewrite of The Settlers IV (History Edition) in Rust, for Windows, Lin
 
 ## In this release
 
-- The game for Windows, Linux and macOS, and the Asset Studio as a native desktop app for all three.
-- Optional cloud shadows drifting with the wind: press F5 in a game. They are off by default and change nothing in the simulation.
+- Dark land is now drawn as the game has it. Land the Dark Tribe darkens during play turns dark on screen, so its mushroom farms no longer seem to stand on green. Land made green again, by gardeners or the priest's terrain spell, turns green on screen too.
+- A defeated player stops, as in the original. A beaten computer loses its AI, and every building of a defeated player except towers and castles is switched off, so building and production end.
+- Earlier: the game for Windows, Linux and macOS, the Asset Studio as a native desktop app, and optional cloud shadows (F5).
 
 ## Good to know
 
