@@ -237,6 +237,7 @@ They appear in `target/package`. Pushing a tag `v*` to GitHub builds all three s
 | `studio/` | The Asset Studio, a separate workspace |
 | `vendor/lua-src` | Lua 5.2.4 with a fixed string-hash seed, for determinism |
 | `tools/package` | Packaging scripts and the packages' READMEs |
+| `tools/artgen` | New art for Asset Studio packs: SDXL repaints stills, Blender renders characters (local only, see its README) |
 
 **Tests:** most tests need the game data and pass without doing anything if they don't find it, so
 always set `S4_DIR`:

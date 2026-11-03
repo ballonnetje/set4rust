@@ -1,0 +1,7 @@
+{
+  "positive": "{subject}, single building seen from above at an isometric angle, video game sprite, hand-painted digital painting, warm sunlight from the upper left, soft shading, rich colours, crisp detailed textures, medieval european village, plain grass background",
+  "negative": "photo, photograph, blurry, lowres, jpeg artifacts, text, watermark, signature, people, person, characters, animals, modern, cars, frame, border, multiple buildings, deformed, cropped",
+  "seq": {
+    "construction": "unfinished building under construction, bare timber frame, wooden scaffolding, planks lying around"
+  }
+}
