@@ -222,7 +222,7 @@ pub fn run_with_progress(game: &Path, out: &Path, done: &(dyn Fn(usize) + Sync))
         .with(
             "pack_layout",
             Json::obj()
-                .with("manifest", "pack.json: {\"format\": 1, \"name\": \"...\", \"scale\": 1 or 2, \"frame_multiplier\": 1..8 (default for animations)}")
+                .with("manifest", "pack.json: {\"format\": 1, \"name\": \"...\", \"scale\": 1, 2 or 4, \"frame_multiplier\": 1..8 (default for animations)}")
                 .with("gfx", "gfx/{group}/{slot}/{seq}/{frame:000}.png (RGBA), original frame count x frame multiplier")
                 .with("team_mask", "gfx/{group}/{slot}/{seq}/{frame:000}.team.png (grey, 255 = full team colour, same size as the frame)")
                 .with("seq", "gfx/{group}/{slot}/{seq}/seq.json: {\"anchor\": [x, y]} for every frame or {\"anchors\": [[x, y], ...]} per frame, \"frame_multiplier\": k (frames per original frame); without an anchor it is (left, top) x scale of the original frame the replacement frame belongs to (frame j -> original j / k)")

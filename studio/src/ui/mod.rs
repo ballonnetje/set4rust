@@ -1066,7 +1066,7 @@ impl Studio {
                     let scale = self.pack.scale();
                     widgets::caption(ui, "Pack scale", p);
                     egui::ComboBox::from_id_salt("scale").width(58.0).selected_text(format!("{scale}×")).show_ui(ui, |ui| {
-                        for v in [1.0, 2.0] {
+                        for v in crate::pack::SCALES {
                             if ui.selectable_label(scale == v, format!("{v}×")).clicked() {
                                 self.defer(move |st| st.set_pack_meta("scale", crate::pack::num(v)));
                             }

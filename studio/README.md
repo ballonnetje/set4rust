@@ -160,9 +160,11 @@ pack/
   music/<track>.mp3 | .ogg | .wav
 ```
 
-* **Scale.** `scale` 1 is the original pixel size, 2 twice as detailed. A replacement frame is the
-  original's displayed size × scale (half-size frames: half the size × scale). The studio shows
-  replacements at game size.
+* **Scale.** `scale` 1 is the original pixel size, 2 twice and 4 four times as detailed (the top bar
+  offers 1×, 2× and 4×). A replacement frame is the original's displayed size × scale (half-size
+  frames: half the size × scale). The studio shows replacements at game size. The largest original
+  frame (an 800 × 600 GUI background) is 3200 × 2400 at 4×, within the export's 4096 × 8192 sheet
+  pages.
 * **Frame multiplier.** `pack.json` `frame_multiplier` is the default for every animated sequence
   (more than one frame, not a GUI image or terrain page); `seq.json` `{"frame_multiplier": k}`
   overrides it per sequence. Stills always have 1.

@@ -13,6 +13,9 @@ use crate::model::{BLD_KEYS, Building, Frame, Group, Seq, Slot, half_k};
 pub const MUSIC_EXT: [&str; 3] = ["mp3", "ogg", "wav"];
 /// The studio offers these; `seq.json` and `pack.json` may hold up to 8.
 pub const MULTS: [u32; 4] = [1, 2, 3, 4];
+/// Pack scales offered in the top bar: replacement pixels per original pixel. Powers of two, so a
+/// loader can shrink a 4x pack to 2x or 1x without resampling artefacts.
+pub const SCALES: [f64; 3] = [1.0, 2.0, 4.0];
 
 pub fn seq_dir(g: &Group, slot: &Slot, seq: &Seq) -> String {
     format!("gfx/{}/{}/{}", g.id, slot.id, seq.key)
@@ -454,6 +457,21 @@ pub mod tests {
         let again = Pack::open(&d).unwrap();
         assert_eq!((again.name(), again.scale(), again.mult()), ("x", 2.0, 3));
         assert_eq!(again.meta.get("author").and_then(Value::as_str), Some("me"));
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    #[test]
+    fn scale_four_sizes_frames_and_half_frames() {
+        let d = temp("scale4");
+        let mut p = Pack::open(&d).unwrap();
+        p.set_meta("scale", num(4.0)).unwrap();
+        let again = Pack::open(&d).unwrap();
+        assert_eq!(again.scale(), 4.0);
+        let full: Frame = [0, 186, 146, 67, 120, 0, 0, 0];
+        let half: Frame = [0, 31, 20, 15, 10, crate::model::F_HALF, 0, 0];
+        assert_eq!(expect_size(&full, again.scale()), [744, 584]);
+        assert_eq!(expect_size(&half, again.scale()), [62, 40]);
+        assert!(SCALES.contains(&4.0));
         std::fs::remove_dir_all(&d).unwrap();
     }
 
